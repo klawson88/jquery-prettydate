@@ -159,7 +159,9 @@
 					dayDiff < 363 && messages.months(Math.ceil(dayDiff / 31)) ||
 					dayDiff <= 380 && messages.year ||
 					dayDiff > 380 && messages.years(Math.ceil(dayDiff / 365));
-		}
+		},
+                
+                periodicFormattingFuncCentricDataObjWrapper: {}
 
 	};
 
@@ -193,14 +195,18 @@
 	$.fn.prettyDate = function (options) {
 		options = $.extend({
 			interval: 10000,
+                        doRefreshSelectionOnInterval: false,
 			attribute: 'title',
 			value: function () {
 				return $(this).attr(options.attribute);
 			}
 		}, options);
 		var elements = this;
+                var elementSelector = (elements.selector instanceof String && elements.selector.length  > 0 ? elements.selector : null );
+                
 		function format() {
-			elements.each(function () {
+                    var $selectionObj = (options.doRefreshSelectionOnInterval && elementSelector !== null ? $(elementSelector) : elements);
+			$selectionObj.each(function () {
 				var date = $.prettyDate.format(options.value.apply(this));
 				if (date && $(this).text() !== date) {
 					$(this).text(date);
@@ -208,9 +214,30 @@
 			});
 		}
 		format();
-		if (options.interval) {
-			setInterval(format, options.interval);
-		}
+                
+                if(options.interval)
+                {
+                    if(elementSelector !== null)
+                    {
+                        var canCreatePeriodicFormattingFunc = true;
+
+                        if($.prettyDate.periodicFormattingFuncCentricDataObjWrapper.hasOwnProperty(elementSelector))
+                        {
+                            var periodicFormattingFuncCentricDataObj =  $.prettyDate.periodicFormattingFuncCentricDataObjWrapper[elementSelector];
+
+                            if(options.interval < periodicFormattingFuncCentricDataObj.interval)
+                                clearInterval(periodicFormattingFuncCentricDataObj.funcId);
+                            else
+                                canCreatePeriodicFormattingFunc = false;
+                        }
+
+                        if(canCreatePeriodicFormattingFunc)
+                            $.prettyDate.periodicFormattingFuncCentricDataObj[elementSelector] = {funcId: setInterval(format, options.interval), interval: options.interval};
+                    }
+                    else
+                        setInterval(format, options.interval);
+                }
+                
 		return this;
 	};
 
